@@ -1,0 +1,326 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="dist/reset.css">
+		<link rel="stylesheet" href="dist/reveal.css">
+		<link rel="stylesheet" href="dist/theme/white.css" id="theme">
+		<link rel="stylesheet" href="css/docker.css">
+
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="plugin/highlight/monokai.css" id="highlight-theme">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h1>コンテナ化の技術</h1>
+					<img src="images/docker-logo.svg" alt="reveal.js logo" style="height: 180px; margin: 0 auto 4rem auto; background: transparent;" class="docker-logo">
+					<img src="images/k8s-logo.svg" alt="reveal.js logo" style="height: 180px; margin: 0 auto 4rem auto; background: transparent;" class="docker-logo">
+				
+				</section>
+				<section>
+					<h2>Dockerとは？</h2>
+					<p>Linuxのコンテナ技術を使ったもので、仮想マシンとよく比較されるもの</p>
+				</section>
+				<section>
+					<h2>仮想化の技術</h2>
+					<img src="images/xaas.jpg" alt="XaaS comparison">
+				</section>
+				<section>
+					<h2>コンテナと仮想マシンの違い</h2>
+					<img src="images/vm_container.png" alt="VM vs Container">
+				</section>
+				<section>
+					<h2>コンテナ化の利点</h2>
+					<ul>
+						<li><b>一貫性：</b>コード化されたファイルを共有することで、どこでも誰でも同じ環境が作れる(IaC)</li>
+						<li><b>高速：</b>起動に数分かかる仮想マシンに対し、　数秒以内に起動</li>
+						<li><b>軽量：</b>リソースを節約し、効率的に運用</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<h2>Dockerの実行</h2>
+						<pre><code class="bash" data-trim>
+							docker run --rm --name my-nginx -d -p 8080:80 nginx
+						</code></pre>
+					</section>
+					<section>
+						<p>ブラウザで動作確認</p>
+						<a href="http://localhost:8080">http://localhost:8080</a>
+					</section>
+					<section>
+						<h2>各種コマンド</h2>
+						<pre><code class="bash" data-trim>
+							docker ps
+							docker exec -it {CONTAINER ID} bash
+							docker image ls
+							docker stop {CONTAINER ID}
+							docker rm {CONTAINER ID}
+						</code></pre>
+					</section>
+					<section>
+						<h2>volumeのマウント</h2>
+						<pre><code class="bash" data-trim>
+							docker run -v $PWD:/usr/share/nginx/html -d -p 8080:80 nginx
+						</code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h3>イメージの作成</h3>
+						<p>Dockerfileを作成して独自のイメージを作成</p>
+						<pre><code class="Dockerfile" data-trim data-line-numbers>
+							FROM node:lts-alpine
+
+							RUN npm install -g http-server
+							WORKDIR /app
+							
+							COPY package*.json ./
+							RUN npm install
+							
+							COPY . .
+							RUN npm run build
+							
+							EXPOSE 8080
+							CMD [ "http-server", "dist" ]
+						</code></pre>
+					</section>
+					<section>
+						<h2>イメージのビルド</h2>
+						<pre><code class="bash" data-trim>
+							docker build -t vueapp .
+						</code></pre>
+						<p>イメージの確認</p>
+						<pre><code class="bash" data-trim>
+							docker image ls
+						</code></pre>
+						<p>コンテナの作成と起動</p>
+						<pre><code class="bash" data-trim>
+							docker run -it -p 8080:8080 --rm --name vueapp-run vueapp
+						</code></pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>Docker compose</h2>
+						<p>複数のコンテナを組み合わせた環境をYAMLで記述できる</p>
+						<pre><code class="yml" data-trim data-line-numbers="1-18|3-9|11-18">
+							version: "3"
+							services: 
+							  web:
+							    build: ./vue-web
+							    depends_on:
+							      - json-server
+							    container_name: "docker-vue"
+							    ports: 
+							      - "8080:80"
+								
+							  json-server:
+							    build: ./json-server
+							    container_name: json-api
+							    ports:
+							      - "3000:3000"
+							    volumes:
+							      - ./json-server/db.json:/data/db.json
+							    command: json-server --watch db.json --host 0.0.0.0
+						</code></pre>
+					</section>
+					<section>
+						<h2>Docker-composeの起動</h2>
+						<pre><code class="bash" data-trim>
+							docker-compose up
+						</code></pre>
+						<p>各種コマンド</p>
+						<pre><code class="bash" data-trim>
+							docker-compose up -d
+							docker-compose down
+							docker-compose build
+							docker-compose logs -f
+						</code></pre>
+					</section>
+				</section>
+				<section>
+					<h2>Kubernetes</h2>
+					<img src="images/k8s-logo.svg" style="height: 180px;"  alt="kubernetes logo">
+					<p>本番環境レベルのコンテナオーケストレーション
+					</p>
+				</section>
+				<section>
+					<h2>Kubernetesの特徴</h2>
+					<ul>
+						<li>自動化されたロールアウトとロールバック</li>
+						<li>サービス正常性のモニタリング</li>
+						<li>サービスの自動スケーリング</li>
+						<li>宣言型管理</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<h2>自動スケーリング</h2>
+						<img src="images/Node-Scaling.png" style="height: 350px;"  alt="auto-scaling">
+					</section>
+					<section>
+						<h2>宣言型の具体例</h2>
+						<pre><code class="yml" data-trim data-line-numbers="1-17|7-12|13-17">
+							apiVersion: autoscaling/v2beta1
+							kind: HorizontalPodAutoscaler
+							metadata:
+							  name: php-hpa
+							  namespace: default
+							spec:
+							  scaleTargetRef: # ここでautoscale対象となる`scaled resource object`を指定
+								apiVersion: apps/v1
+								kind: Deployment
+								name: php-deploy
+							  minReplicas: 1 # 最小レプリカ数
+							  maxReplicas: 5 # 最大レプリカ数
+							  metrics:
+							  - type: Resource
+								resource:
+								  name: cpu
+								  targetAverageUtilization: 50 # CPU使用率が常に50%になるように指定
+						</code></pre>
+					</section>
+				</section>
+				<section>
+					<h2>Deploymentの手法</h2>
+					<ul>
+						<li>Blue-Green deployment</li>
+						<li>Canary Deployment</li>
+						<li>A/B testing</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<h2>Blue-Green deployment</h2>
+						<h4>切替前</h4>
+						<img src="images/bg1.png" style="height: 350px;"  alt="blue-green-1">
+					</section>
+					<section>
+						<h2>Blue-Green deployment</h2>
+						<h4>切替後</h4>
+						<img src="images/bg2.png" style="height: 350px;"  alt="blue-green-2">
+					</section>
+					<section>
+						<h2>blue greenの利点</h2>
+						<ul>
+							<li>サービス停止不要</li>
+							<li>事前にリリース可能</li>
+							<li>ロールバックが容易</li>
+						</ul>
+					</section>
+					<section>
+						<h2>blue greenの難点</h2>
+						<ul>
+							<li>リソースが2倍必要（コンテナの使用で軽減）</li>
+							<li>DBの扱いが難しい</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>カナリアリリース</h2>
+						<img src="images/canary.jpg" style="height: 350px;"  alt="Canary">
+					</section>
+					<section>
+						<h2>カナリアリリース実装</h2>
+						<img src="images/canary-deployment.png" style="height: 350px;"  alt="canary-deployment">
+					</section>
+					<section>
+						<h2>カナリアの特徴</h2>
+						<ul>
+							<li>リスクの高い・実験的な要素に使用</li>
+							<li>一部のユーザーで様子見</li>
+							<ul>
+								<li>良ければ徐々にロールアウト</li>
+								<li>問題があればロールバック</li>
+							</ul>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>A/B testing</h2>
+						<img src="images/ab-testing.jpg" style="height: 350px;"  alt="ab-testing">
+					</section>
+					<section>
+						<h2>A/Bテストの実装</h2>
+						<img src="images/canary-deployment.png" style="height: 350px;"  alt="canary-deployment">
+					</section>
+					<section>
+						<h2>A/Bテストの特徴</h2>
+						<ul>
+							<li>主にフロントエンドで活用</li>
+							<li>実ユーザーで実験しどんどんUIを改善</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<h2>デプロイ周り</h2>
+					<p>ブルーグリーン、カナリヤ、ABテスト等、<br>様々なデプロイ手法が共通の手段で実装可能</p>
+					<table>
+						<tr>
+							<th>デプロイ手法</th>
+							<th>アプリ１</th>
+							<th>アプリ２</th>
+						</tr>
+						<tr>
+							<td>青緑</td>
+							<td>100% → 0%</td>
+							<td>0% → 100%</td>
+						</tr>
+						<tr>
+							<td>カナリヤ</td>
+							<td>95% → 0%</td>
+							<td>5% → 100%</td>
+						</tr>
+						<tr>
+							<td>ABテスト</td>
+							<td>50%</td>
+							<td>50%</td>
+						</tr>
+					</table>
+				</section>
+			</div>
+		</div>
+
+		<script src="dist/reveal.js"></script>
+		<script src="plugin/notes/notes.js"></script>
+		<script src="plugin/markdown/markdown.js"></script>
+		<script src="plugin/highlight/highlight.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
+				dependencies: [
+					// ... 
+					{ src: 'plugin/chart/Chart.min.js'},
+					{ src: 'plugin/anything/anything.js' },
+					// ... 
+				],
+				anything: [
+					{
+						className: "random",
+						defaults: {min: 0, max: 9},
+						initialize: (function(container, options) {
+							container.innerHTML = Math.trunc( options.min + Math.random()*(options.max-options.min + 1) );
+						}),
+						className: "chart",
+						initialize: (function (container, options) { container.chart = new Chart(container.getContext("2d"), options); })
+					},
+				],
+			});
+		</script>
+	</body>
+</html>
